@@ -1,102 +1,113 @@
 ![Jellyseerr MCP Server](header.png)
 
-# Jellyseerr MCP Server
+# Jellyseerr MCP Server (Node/TypeScript)
 
-[![Tests](https://img.shields.io/github/actions/workflow/status/aserper/jellyseerr-mcp/test.yml?style=for-the-badge&logo=github&label=Tests)](https://github.com/aserper/jellyseerr-mcp/actions/workflows/test.yml)
-[![Supported Python versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](README.md#license)
-[![GHCR](https://img.shields.io/badge/ghcr.io-jellyseerr--mcp-blue?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/aserper/jellyseerr-mcp/pkgs/container/jellyseerr-mcp)
-
-[![GitHub stars](https://img.shields.io/github/stars/aserper/jellyseerr-mcp.svg?style=social)](https://github.com/aserper/jellyseerr-mcp)
-[![GitHub forks](https://img.shields.io/github/forks/aserper/jellyseerr-mcp.svg?style=social)](https://github.com/aserper/jellyseerr-mcp/fork)
-
-An MCP (Model Context Protocol) server for Jellyseerr that exposes Jellyseerr API functionality as MCP tools usable by LLM clients. It includes colorful, emoji-forward logging and clear console output.
+First-class MCP support for Jellyseerr across stdio, legacy SSE, and the new Streamable HTTP transport powered by `@modelcontextprotocol/sdk`.
 
 ## Features
-- Exposes key Jellyseerr endpoints as MCP tools (search, request, get request status, etc.)
-- Synchronous HTTP client with robust error handling and timeouts
-- Colorful, structured logging via Rich with emoji indicators
-- Configuration via environment variables (`.env` supported)
-- Non-blocking stdio server compatible with multi-mcp configurations
+- Streamable HTTP transport for multi-client environments (VS Code + Discord) without proxying or bridging.
+- Transport-agnostic tools backed by a shared Jellyseerr API client.
+- Stdio transport for CLI/desktop MCP clients.
+- SSE transport preserved for legacy compatibility (deprecated).
+- Container entrypoint defaults to Streamable HTTP.
 
 ## Requirements
-- Python 3.10+
-- Packages in `requirements.txt`
+- Node.js 18+ (Node 20 recommended)
+- Jellyseerr URL and API key
 
-## Setup
-1. Create and activate a virtualenv.
-2. `pip install -r requirements.txt`
-3. Copy `.env.example` to `.env` and set your values.
+## Configuration
+Set environment variables (or copy `.env.example`):
 
 ```
 JELLYSEERR_URL=https://your-jellyseerr.example.com
 JELLYSEERR_API_KEY=your_api_key_here
 JELLYSEERR_TIMEOUT=15
+PORT=3000
+HOST=0.0.0.0
 ```
 
-## Running the MCP server
+## Transport comparison
 
-```
-python -m jellyseerr_mcp
-```
+| Transport | Protocol | Default | Best for | Notes |
+| --- | --- | --- | --- | --- |
+| Stdio | stdio | n/a | Claude Desktop, CLI | `npm run start:stdio` |
+| SSE (legacy) | HTTP + SSE | `PORT` | Older MCP clients | Deprecated; endpoints `/sse` (GET) + `/messages` (POST) |
+| Streamable HTTP | Streamable HTTP | `PORT` | VS Code `type: "http"`, Discord bots, multi-client | Default docker/CLI mode at `/mcp` |
 
-You should see colorful logs indicating the server is ready on stdio. The server communicates via stdin/stdout, making it compatible with Claude Desktop and other MCP clients.
-
-## Docker
-
-You can run the server using Docker by either pulling the pre-built image from the GitHub Container Registry (GHCR) or building it yourself.
-
-### Pull from GHCR
+## Installation
 
 ```bash
-docker pull ghcr.io/aserper/jellyseerr-mcp:latest
+npm ci
+npm run build
 ```
 
-### Build Locally
+## Running
 
+### Streamable HTTP (default)
+```bash
+# Uses PORT/HOST (defaults: 3000/0.0.0.0)
+node dist/index.js --transport=http
+```
+
+### Stdio
+```bash
+node dist/index.js --transport=stdio
+```
+
+### SSE (legacy)
+```bash
+node dist/index.js --transport=sse
+# Connect at GET /sse, POST /messages?sessionId={id}
+```
+
+### Docker
 ```bash
 docker build -t jellyseerr-mcp .
-```
-
-### Run
-
-```bash
-# If you pulled from GHCR:
-docker run --rm -it \
-  -e JELLYSEERR_URL="https://your-jellyseerr.com" \
-  -e JELLYSEERR_API_KEY="your_api_key" \
-  ghcr.io/aserper/jellyseerr-mcp:latest
-
-# If you built locally:
-docker run --rm -it \
+docker run --rm -p 3000:3000 \
   -e JELLYSEERR_URL="https://your-jellyseerr.com" \
   -e JELLYSEERR_API_KEY="your_api_key" \
   jellyseerr-mcp
 ```
 
-### Multi-MCP Configuration
+### Docker Compose
+```bash
+docker compose up --build
+# override defaults
+JELLYSEERR_URL="https://your-jellyseerr.com" \
+JELLYSEERR_API_KEY="your_api_key" \
+docker compose up --build
+```
 
-The server is designed to work seamlessly with multi-mcp configurations. Example `mcp.json`:
+## MCP client examples
 
+### VS Code (`type: "http"`)
 ```json
 {
   "mcpServers": {
     "jellyseerr": {
-      "command": "/path/to/.venv/bin/python",
-      "args": ["-m", "jellyseerr_mcp"],
-      "env": {
-        "JELLYSEERR_URL": "https://your-jellyseerr.example.com",
-        "JELLYSEERR_API_KEY": "your_api_key_here"
-      }
+      "type": "http",
+      "url": "http://localhost:3000/mcp",
+      "name": "jellyseerr"
     }
   }
 }
 ```
 
-## Exposed tools (initial set)
-- `search_media(query: str)` — Search Jellyseerr for media by query.
-- `request_media(media_id: int, media_type: str)` — Create a media request.
-- `get_request(request_id: int)` — Fetch a request’s details/status.
-- `ping()` — Liveness check with server/transport info.
+### Discord bot notes
+- Run the Streamable HTTP server where the bot can reach `http://<host>:<port>/mcp`.
+- Reuse the same MCP session per bot instance for best tool reuse; no proxying is required.
 
-More tools can be added easily — see `jellyseerr_mcp/server.py`.
+## Exposed tools
+- `ping()` — Liveness check with transport metadata.
+- `search_media(query, limit?)` — Search Jellyseerr.
+- `request_media(mediaId, mediaType, is4k?)` — Submit a request.
+- `get_request(requestId)` — Retrieve request details.
+- `raw_request(method, endpoint, params?, body?)` — Direct Jellyseerr API access.
+
+## Development
+- Lint: `npm run lint`
+- Tests: `npm test`
+- Build: `npm run build`
+
+## License
+MIT

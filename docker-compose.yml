@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+  jellyseerr-mcp:
+    build: .
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      JELLYSEERR_URL: ${JELLYSEERR_URL:-https://your-jellyseerr.example.com}
+      JELLYSEERR_API_KEY: ${JELLYSEERR_API_KEY:-your_api_key_here}
+      JELLYSEERR_TIMEOUT: ${JELLYSEERR_TIMEOUT:-15}
+      HOST: 0.0.0.0
+      PORT: 3000
+    command: ["node", "dist/index.js", "--transport=http"]

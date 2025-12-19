@@ -1,0 +1,35 @@
+{
+  "name": "jellyseerr-mcp-modern",
+  "version": "1.0.0",
+  "description": "Jellyseerr MCP server with stdio, SSE, and Streamable HTTP transports.",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint . --ext .ts",
+    "test": "vitest run",
+    "start": "node dist/index.js",
+    "start:http": "node dist/index.js --transport=http",
+    "start:stdio": "node dist/index.js --transport=stdio",
+    "start:sse": "node dist/index.js --transport=sse"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.1",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "zod": "^4.2.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.0.3",
+    "@typescript-eslint/eslint-plugin": "^8.50.0",
+    "@typescript-eslint/parser": "^8.50.0",
+    "eslint": "^9.39.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16"
+  }
+}
