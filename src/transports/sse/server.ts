@@ -1,7 +1,7 @@
 import { createServer as createHttpServer } from 'node:http';
 
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse';
-import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import type { Request, Response } from 'express';
 
 import { createServer } from '../../server.js';
